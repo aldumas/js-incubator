@@ -46,7 +46,6 @@ class LetsMakeADealGameStateMachine {
     }
 
     startGame() {
-        this._fsm.postEvent('nope');
         return this._fsm.postStart();
     }
 
