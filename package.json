@@ -1,0 +1,22 @@
+{
+  "name": "js-incubator",
+  "version": "1.0.0",
+  "description": "For exploration of concepts and prototyping ideas for things",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aldumas/js-incubator.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/aldumas/js-incubator/issues"
+  },
+  "homepage": "https://github.com/aldumas/js-incubator#readme",
+  "browserslist": [
+    "defaults"
+  ]
+}
