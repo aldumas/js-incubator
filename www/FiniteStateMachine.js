@@ -100,57 +100,57 @@ function callFnIfExists(fn, spec, args) {
 
 function throwErrorOnInvalidFsmSpec(spec, start, end) {
     let { ok, errMsg } = validateFsm(spec, start, end);
-        if (!ok) {
-            throw fsmError(errMsg);
-        }
+    if (!ok) {
+        throw fsmError(errMsg);
+    }
 }
 
 function validateFsm(spec, start, end) {
     let ok = true, errMsg = "";
 
-        let nextStates = allNextStates(spec);
+    let nextStates = allNextStates(spec);
 
-        // end is optional; ok if already present
-        let validStates = Object.keys(spec).concat(end);
+    // end is optional; ok if already present
+    let validStates = Object.keys(spec).concat(end);
 
-        let invalidStates = nextStates.filter(state => validStates.indexOf(state) < 0);
+    let invalidStates = nextStates.filter(state => validStates.indexOf(state) < 0);
 
-        if (validStates.indexOf(start) < 0) {
-            ok = false;
-            errMsg = `missing start state ${start}`;
-        } else if (invalidStates.length > 0) {
-            ok = false;
-            errMsg = `invalid next state${invalidStates.length > 1 ? 's': ''} -  ${invalidStates.join(', ')}`;
-        }
+    if (validStates.indexOf(start) < 0) {
+        ok = false;
+        errMsg = `missing start state ${start}`;
+    } else if (invalidStates.length > 0) {
+        ok = false;
+        errMsg = `invalid next state${invalidStates.length > 1 ? 's' : ''} -  ${invalidStates.join(', ')}`;
+    }
 
-        return {ok, errMsg};
+    return { ok, errMsg };
 }
 
 function allNextStates(spec) {
     return Object.values(spec) // state objects
-                        .map(stateObj => stateObj.transitions)
-                        .filter(transition => typeof transition === "object" &&
-                                                transition !== null)
-                        // [
-                        //     {event1: {state}, event2: {state}, ...},
-                        //     {event3: {state}, ...}
-                        // ]
-                        .map(transition => Object.values(transition)
-                            .map(eventObj => eventObj.state))
-                        // [
-                        //     [state, state, ...],
-                        //     [state]
-                        // ]
-                        .flat()
-                        // remove duplicates
-                        .filter((() => {
-                            let stateSet = {};
-                            return (state) => {
-                                let exists = stateSet.hasOwnProperty(state);
-                                stateSet[state] = true;
-                                return !exists;
-                            };
-                        })());
+        .map(stateObj => stateObj.transitions)
+        .filter(transition => typeof transition === "object" &&
+            transition !== null)
+        // [
+        //     {event1: {state}, event2: {state}, ...},
+        //     {event3: {state}, ...}
+        // ]
+        .map(transition => Object.values(transition)
+            .map(eventObj => eventObj.state))
+        // [
+        //     [state, state, ...],
+        //     [state]
+        // ]
+        .flat()
+        // remove duplicates
+        .filter((() => {
+            let stateSet = {};
+            return (state) => {
+                let exists = stateSet.hasOwnProperty(state);
+                stateSet[state] = true;
+                return !exists;
+            };
+        })());
 }
 
 function fsmError(message) {
