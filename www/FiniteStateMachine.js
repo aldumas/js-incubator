@@ -8,25 +8,23 @@
 // 3. action: Called while changing the state, after exit if exit exists and
 //      before entry if entry exists.
 
-//TODO remove class syntax, add Fsm.createMachine().
-
 export class FiniteStateMachine {
-    constructor(fsm, start = 'START', end = 'END') {
+    constructor(spec, start = 'START', end = 'END') {
 
         // This checks the FSM for errors on initialization, but if the caller
         // changes the FSM while it is running, those errors are discovered
         // later.
-        this._throwErrorOnInvalidFsm(fsm, start, end);
+        throwErrorOnInvalidFsmSpec(spec, start, end);
 
-        this._start = start;
-        this._end = end;
+        this.start = start;
+        this.end = end;
 
         // The state machine description provided by the user will become the
         // 'this' binding for all callbacks.
-        this._fsm = fsm;
+        this.spec = spec;
 
-        this._state = null;
-        this._stateName = null;
+        this.state = null;
+        this.stateName = null;
     }
 
     /* Queues the start event, which places the state machine in the start
@@ -53,35 +51,35 @@ export class FiniteStateMachine {
             setTimeout(() => {
                 let next_state = null;
 
-                if (this._state == null) {
+                if (this.state == null) {
                     if (event != null) {
-                        reject(this._fsmError(`received event '${event}' but state machine has not started`));
+                        reject(fsmError(`received event '${event}' but state machine has not started`));
                         return;
                     }
 
-                    next_state = this._start;
+                    next_state = this.start;
                 } else {
-                    if (!this._state.transitions.hasOwnProperty(event)) {
-                        reject(this._fsmError(`unexpected event '${event}' encountered in state ${this._stateName}`));
+                    if (!this.state.transitions.hasOwnProperty(event)) {
+                        reject(fsmError(`unexpected event '${event}' encountered in state ${this.stateName}`));
                         return;
                     }
 
-                    this._callUserFnIfExists(this._state.exit);
+                    callFnIfExists(this.state.exit, this.spec);
 
-                    let transition = this._state.transitions[event];
+                    let transition = this.state.transitions[event];
 
-                    this._callUserFnIfExists(transition.action, args);
+                    callFnIfExists(transition.action, this.spec, args);
 
                     next_state = transition.state;
                 }
 
-                if (this._fsm.hasOwnProperty(next_state)) {
-                    this._state = this._fsm[next_state];
-                    this._stateName = next_state;
-                    this._callUserFnIfExists(this._state.entry);
-                } else if (next_state != this._end) { // end is optional
+                if (this.spec.hasOwnProperty(next_state)) {
+                    this.state = this.spec[next_state];
+                    this.stateName = next_state;
+                    callFnIfExists(this.state.entry, this.spec);
+                } else if (next_state != this.end) { // end is optional
                     // this can happen if the caller modifies the state machine
-                    reject(this._fsmError(`invalid next state ${next_state} encountered while processing event '${event}' in state ${this._stateName}`));
+                    reject(fsmError(`invalid next state ${next_state} encountered while processing event '${event}' in state ${this.stateName}`));
                     return;
                 }
 
@@ -89,30 +87,31 @@ export class FiniteStateMachine {
             }, 0);
         });
     }
+}
 
-    /* Calls the given function with the given args, setting the user-provided
-     * fsm object as the "this" value.
-     */
-    _callUserFnIfExists(fn, args) {
-        if (fn) {
-            fn.apply(this._fsm, args);
-        }
+/* Calls the given function with the given args, setting the user-provided
+ * fsm specification object as the "this" value.
+ */
+function callFnIfExists(fn, spec, args) {
+    if (fn) {
+        fn.apply(spec, args);
     }
+}
 
-    _throwErrorOnInvalidFsm(fsm, start, end) {
-        let { ok, errMsg } = this._validateFsm(fsm, start, end);
+function throwErrorOnInvalidFsmSpec(spec, start, end) {
+    let { ok, errMsg } = validateFsm(spec, start, end);
         if (!ok) {
-            throw this._fsmError(errMsg);
+            throw fsmError(errMsg);
         }
-    }
+}
 
-    _validateFsm(fsm, start, end) {
-        let ok = true, errMsg = "";
+function validateFsm(spec, start, end) {
+    let ok = true, errMsg = "";
 
-        let nextStates = this._allNextStates(fsm);
+        let nextStates = allNextStates(spec);
 
         // end is optional; ok if already present
-        let validStates = Object.keys(fsm).concat(end);
+        let validStates = Object.keys(spec).concat(end);
 
         let invalidStates = nextStates.filter(state => validStates.indexOf(state) < 0);
 
@@ -125,10 +124,10 @@ export class FiniteStateMachine {
         }
 
         return {ok, errMsg};
-    }
+}
 
-    _allNextStates(fsm) {
-        return Object.values(fsm) // state objects
+function allNextStates(spec) {
+    return Object.values(spec) // state objects
                         .map(stateObj => stateObj.transitions)
                         .filter(transition => typeof transition === "object" &&
                                                 transition !== null)
@@ -152,12 +151,10 @@ export class FiniteStateMachine {
                                 return !exists;
                             };
                         })());
-    }
+}
 
-    /* Returns a standard formatted Error object */
-    _fsmError(message) {
-        let error = new Error(message);
-        error.name = "FiniteStateMachine";
-        return error;
-    }
+function fsmError(message) {
+    let error = new Error(message);
+    error.name = "FiniteStateMachine";
+    return error;
 }

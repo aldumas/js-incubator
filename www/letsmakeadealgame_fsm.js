@@ -43,6 +43,7 @@ class LetsMakeADealGameStateMachine {
                 }
             }
         });
+        console.log(this._fsm);
     }
 
     startGame() {

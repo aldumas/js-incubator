@@ -73,5 +73,3 @@ console.log(values.map(val => Number(val)));
 //TODO compare whether 2 distinct arrays are equal.
 
 
-
-
