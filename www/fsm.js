@@ -161,8 +161,8 @@ export function createMachine(config) {
 
     // This is the only data that changes during the execution of the machine.
     // Each machine needs its own values, so it must be set on this machine
-    // object; otherwise the the corresponding values in the prototype FSM
-    // would be changed during the execution of this machine.
+    // object; otherwise the corresponding values in the prototype FSM would
+    // be changed during the execution of this machine.
     let state = null;
 
     return Object.assign(machine, {spec, start, end, pass, options, state});
@@ -173,7 +173,7 @@ export function runDemo() {
         //start - use default
         //end   - use default
         //spec  - use default; see fsm.spec
-        pass: "This can be any data type and is optional.",
+        //pass  - use default
         //options - use default
     });
 
