@@ -1,4 +1,4 @@
-import { FiniteStateMachine } from './FiniteStateMachine.js';
+import * as fsm from './fsm.js';
 
 const DOOR_COUNT = 3;
 
@@ -14,36 +14,37 @@ class LetsMakeADealGameStateMachine {
         this._revealed_goat_door = null;
         this._prize_door = this._func_random(DOOR_COUNT); //0-based
 
-        this._fsm = new FiniteStateMachine({
-            START: {
-                entry: () => { this._contestant.requestFirstGuess(this); },
-                exit: null,
-                transitions: {
-                    guess: {
-                        state: "HAVE_INITIAL_GUESS",
-                        action: (initial_choice_door) => {
-                            this._initial_choice_door = initial_choice_door;
-                            this._revealed_goat_door = this._findAGoatDoor();
-                            this._contestant.requestSecondGuess(this, this._revealed_goat_door, this._initial_choice_door);
+        this._fsm = fsm.createMachine({
+            spec: {
+                START: {
+                    entry: () => { this._contestant.requestFirstGuess(this); },
+                    exit: null,
+                    transitions: {
+                        guess: {
+                            state: "HAVE_INITIAL_GUESS",
+                            action: (pass, initial_choice_door) => {
+                                this._initial_choice_door = initial_choice_door;
+                                this._revealed_goat_door = this._findAGoatDoor();
+                                this._contestant.requestSecondGuess(this, this._revealed_goat_door, this._initial_choice_door);
+                            }
                         }
                     }
-                }
-            },
-            HAVE_INITIAL_GUESS: {
-                entry: null,
-                exit: null,
-                transitions: {
-                    guess: {
-                        state: "END",
-                        action: (final_choice_door) => {
-                            this._final_choice_door = final_choice_door;
-                            this._contestant.announceGameOver(this, this.didContestantWin);
+                },
+                HAVE_INITIAL_GUESS: {
+                    entry: null,
+                    exit: null,
+                    transitions: {
+                        guess: {
+                            state: "END",
+                            action: (pass, final_choice_door) => {
+                                this._final_choice_door = final_choice_door;
+                                this._contestant.announceGameOver(this, this.didContestantWin);
+                            }
                         }
                     }
                 }
             }
         });
-        console.log(this._fsm);
     }
 
     startGame() {
