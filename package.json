@@ -21,5 +21,8 @@
   ],
   "devDependencies": {
     "jsdoc": "^3.6.1"
+  },
+  "dependencies": {
+    "fsm.js": "git+https://github.com/aldumas/fsm.js.git#master"
   }
 }
