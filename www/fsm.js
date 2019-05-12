@@ -3,7 +3,6 @@
  * 
  * @author Adam Dumas
  * @todo Set up testing.
- * @todo Change variables to private.
  */
 
 /**
@@ -79,8 +78,9 @@
 export function createMachine(config) {
     let machine = Object.create(fsm);
 
-    let {spec, pass, start, end, options} = config;
-    spec = spec || machine.spec;
+    let {spec, pass, start, end, options} = config || {};
+
+    spec = spec || machine._spec;
     start = start || "START";
     end = end || "END";
     options = options || {};
@@ -96,21 +96,27 @@ export function createMachine(config) {
     // be changed during the execution of this machine.
     let state = null;
 
-    return Object.assign(machine, {spec, start, end, pass, options, state});
+    return Object.assign(machine, {
+        _spec: spec,
+        _start: start,
+        _end: end,
+        _pass: pass,
+        _options: options,
+        _state: state});
 }
-
 
 /** Prototype of all FSMs. */
 const fsm = {
-    start: 'START',
-    end: 'END',
-    pass: null,
-    options: {
+    _state: null,
+    _start: 'START',
+    _end: 'END',
+    _pass: null,
+    _options: {
         ignoreUnexpectedEvents: false
     },
 
     // The specification for the machine. Here's the default specification as an example.
-    spec: {
+    _spec: {
         // The keys in this object are the state names.
         START: {
             entry: pass => console.log(pass),
@@ -159,38 +165,38 @@ const fsm = {
             setTimeout(() => {
                 let nextState = null;
 
-                if (this.state == null) {
+                if (this._state == null) {
                     if (event != null) {
                         return this._handleUnexpectedEvent(event, resolve, reject);
                     }
 
-                    nextState = this.start;
+                    nextState = this._start;
                 } else if (event == null) {
                         // Machine reset is being requested.
-                        nextState = this.start;
+                        nextState = this._start;
                 } else {
-                    if (!this.state.spec.transitions.hasOwnProperty(event)) {
+                    if (!this._state.spec.transitions.hasOwnProperty(event)) {
                         return this._handleUnexpectedEvent(event, resolve, reject);
                     }
 
-                    callOptionalFn(this.state.spec.exit, this.pass);
+                    callOptionalFn(this._state.spec.exit, this._pass);
 
-                    let transition = this.state.spec.transitions[event];
+                    let transition = this._state.spec.transitions[event];
 
-                    callOptionalFn(transition.action, this.pass, eventArgs);
+                    callOptionalFn(transition.action, this._pass, ...eventArgs);
 
                     nextState = transition.nextState;
                 }
 
-                if (this.spec.hasOwnProperty(nextState)) {
-                    this.state = {
+                if (this._spec.hasOwnProperty(nextState)) {
+                    this._state = {
                         name: nextState,
-                        spec: this.spec[nextState]
+                        spec: this._spec[nextState]
                     };
-                    callOptionalFn(this.state.spec.entry, this.pass);
-                } else if (nextState != this.end) { // end is optional
+                    callOptionalFn(this._state.spec.entry, this._pass);
+                } else if (nextState != this._end) { // end is optional
                     // this can happen if the caller modifies the state machine
-                    reject(fsmError(this.state, `invalid next state ${nextState} encountered while processing event '${event}' in state ${this.state.name}`));
+                    reject(fsmError(this._state, `invalid next state ${nextState} encountered while processing event '${event}' in state ${this._state.name}`));
                     return;
                 }
 
@@ -200,10 +206,10 @@ const fsm = {
     },
 
     _handleUnexpectedEvent(event, resolve, reject) {
-        if (this.options.ignoreUnexpectedEvents) {
+        if (this._options.ignoreUnexpectedEvents) {
             resolve();
         } else {
-            reject(fsmError(this.state, `unexpected event ${event}`));
+            reject(fsmError(this._state, `unexpected event ${event}`));
         }
     }
 };
@@ -219,7 +225,7 @@ function callOptionalFn(fn, pass, args) {
 function throwErrorOnInvalidFsmSpec(spec, start, end) {
     let { ok, errMsg } = validateFsm(spec, start, end);
     if (!ok) {
-        throw fsmError(errMsg);
+        throw fsmError(null, errMsg);
     }
 }
 
@@ -254,7 +260,7 @@ function allNextStates(spec) {
         //     {event3: {state}, ...}
         // ]
         .map(transition => Object.values(transition)
-            .map(eventObj => eventObj.state))
+            .map(eventObj => eventObj.nextState))
         // [
         //     [state, state, ...],
         //     [state]
@@ -273,7 +279,7 @@ function allNextStates(spec) {
 
 function fsmError(state, message) {
     let error = new Error(message);
-    error.name = `FiniteStateMachine [STATE: ${state == null ? '<Not started>' : state.name}]`;
+    error.name = `FiniteStateMachine [STATE: ${state == null ? '<None>' : state.name}]`;
     error.state = state;
     return error;
 }

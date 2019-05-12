@@ -18,10 +18,9 @@ class LetsMakeADealGameStateMachine {
             spec: {
                 START: {
                     entry: () => { this._contestant.requestFirstGuess(this); },
-                    exit: null,
                     transitions: {
                         guess: {
-                            state: "HAVE_INITIAL_GUESS",
+                            nextState: "HAVE_INITIAL_GUESS",
                             action: (pass, initial_choice_door) => {
                                 this._initial_choice_door = initial_choice_door;
                                 this._revealed_goat_door = this._findAGoatDoor();
@@ -31,11 +30,9 @@ class LetsMakeADealGameStateMachine {
                     }
                 },
                 HAVE_INITIAL_GUESS: {
-                    entry: null,
-                    exit: null,
                     transitions: {
                         guess: {
-                            state: "END",
+                            nextState: "END",
                             action: (pass, final_choice_door) => {
                                 this._final_choice_door = final_choice_door;
                                 this._contestant.announceGameOver(this, this.didContestantWin);
