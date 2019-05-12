@@ -1,140 +1,29 @@
-//TODO set this up with testing.
-//TODO Change back to using private variables.
-
-// This state machine implementation executes the user callbacks in the message
-// queue instead of synchronously to avoid scenarios where the callback invokes
-// state changes in the FSM while user functions from previous states are still
-// on the call stack.
-// There are 3 types of callbacks that can be specified:
-// 1. entry: Called immediately after the state has been entered.
-// 2. exit: Called immediately before leaving the state.
-// 3. action: Called while changing the state, after exit if exit exists and
-//      before entry if entry exists.
-
-// See createMachine() to create FSMs using this as the prototype.
-let fsm = {
-    start: 'START',
-    end: 'END',
-    pass: "Some value, any type, even undefined",
-    options: {
-        ignoreUnexpectedEvents: false
-    },
-
-    // The specification for the machine. Here's the default specification as an example.
-    spec: {
-        // The keys in this object are the state names.
-        START: {
-            entry: pass => console.log("Optional. Called immediately after entering a state. Argument is pass. " + pass),
-            exit: pass => console.log("Optional. Called immediately before leaving a state.  Argument is pass. " + pass),
-            transitions: {
-                // The keys in this object are the event names.
-                EXAMPLE_EVENT: {
-                    state: "SOME_NEXT_STATE",
-                    action: (pass, exampleArg) => console.log(
-                        "Optional. Called while transitioning from one state " +
-                        "the next state in response to an event. Any " +
-                        "arguments after the event name given to postEvent() " +
-                        "are passed into this callback after the pass argument: " + pass + " " + exampleArg),
-                },
-            }
-        },
-        SOME_NEXT_STATE: {
-            transitions: {
-                OK_EXAMPLE_OVER: {
-                    state: "END",
-                    action: pass => console.log(
-                        "The end state does not need its own entry in spec " +
-                        "unless you need to execute an entry action. " + pass)
-                }
-            }
-        }
-    },
-
-    /* Queues the start event, which places the state machine in the start
-     * state, invoking an "entry" callback, if provided.
-     *
-     * Calling postStart() after the machine has already started resets the
-     * machine back to the start state, calling the entry action for the
-     * start state if one was specified.
-
-     * Returns a Promise.
-     */
-    postStart() {
-        return this.postEvent(null);
-    },
-
-    /* Queues an event with the given arguments. The arguments will be passed
-     * to an action callback, if provided.
-     * Returns a Promise.
-     */
-    postEvent(event, ...eventArgs) {
-        return new Promise((resolve, reject) => {
-            // setTimeout just to make this code asynchronous. This is so any
-            // methods that end up getting called in the entry, exit, or action
-            // functions don't actually try to make a transition while the state
-            // machine is in the middle of making one. The current transition
-            // will complete and then the message queue will get processed, which
-            // will end up processing this event.
-
-            setTimeout(() => {
-                let next_state = null;
-
-                if (this.state == null) {
-                    if (event != null) {
-                        return this._handleUnexpectedEvent(event, resolve, reject);
-                    }
-
-                    next_state = this.start;
-                } else if (event == null) {
-                        // Machine reset is being requested.
-                        next_state = this.start;
-                } else {
-                    if (!this.state.spec.transitions.hasOwnProperty(event)) {
-                        return this._handleUnexpectedEvent(event, resolve, reject);
-                    }
-
-                    callOptionalFn(this.state.spec.exit, this.pass);
-
-                    let transition = this.state.spec.transitions[event];
-
-                    callOptionalFn(transition.action, this.pass, eventArgs);
-
-                    next_state = transition.state;
-                }
-
-                if (this.spec.hasOwnProperty(next_state)) {
-                    this.state = {
-                        name: next_state,
-                        spec: this.spec[next_state]
-                    };
-                    callOptionalFn(this.state.spec.entry, this.pass);
-                } else if (next_state != this.end) { // end is optional
-                    // this can happen if the caller modifies the state machine
-                    reject(fsmError(this.state, `invalid next state ${next_state} encountered while processing event '${event}' in state ${this.state.name}`));
-                    return;
-                }
-
-                resolve();
-            }, 0);
-        });
-    },
-
-    _handleUnexpectedEvent(event, resolve, reject) {
-        if (this.options.ignoreUnexpectedEvents) {
-            resolve();
-        } else {
-            reject(fsmError(this.state, `unexpected event ${event}`));
-        }
-    }
-};
+/**
+ * A finite state machine implementation.
+ * 
+ * @author Adam Dumas
+ * @todo Set up testing.
+ * @todo Change variables to private.
+ */
 
 /**
  * Create a finite state machine from a specification.
+ *
+ * There are 3 types of callbacks that can be specified:
+ * 1. entry: Called immediately after the state has been entered.
+ * 2. exit: Called immediately before leaving the state.
+ * 3. action: Called while changing the state, after exit if exit exists and
+ *    before entry if entry exists.
+ * 
+ * This state machine implementation executes the user callbacks in the message
+ * queue instead of synchronously to avoid scenarios where the callback invokes
+ * state changes in the FSM while user functions from previous states are still
+ * on the call stack.
  * 
  * @param {Object} [config] - Machine configuration.
  * @param {Object} [config.spec={...}] - Specification of the FSM. See the fsm
  * object's default spec for an example. If not provided, the default spec is
- * used.
+ * used, which would probably be not super useful to you.
  * @param {Object} [config.pass] - User-defined value that is passed to entry,
  * exit, and action callbacks as the first argument. This value is never read
  * or modified by the FSM.
@@ -144,6 +33,48 @@ let fsm = {
  * @param {bool} [config.options.ignoreUnexpectedEvents=false] - Ignore
  * events received prior to machine start or while in a state which does not
  * have an entry for the event in its transitions object.
+ * @returns {Object} The finite state machine, not yet started.
+ * 
+ * @example
+ * let demo = createMachine({ 
+ *  pass: "Some value, any type, even undefined",
+ *  spec: {
+ *      // The keys in this object are the state names.
+ *      START: {
+ *          entry: pass => console.log("Optional. Called immediately after entering a state. Argument is pass. " + pass),
+ *          exit: pass => console.log("Optional. Called immediately before leaving a state.  Argument is pass. " + pass),
+ *          transitions: {
+ *              // The keys in this object are the event names.
+ *              EXAMPLE_EVENT: {
+ *                  nextState: "SOME_NEXT_STATE",
+ *                  action: (pass, exampleArg) => console.log(
+ *                      "Optional. Called while transitioning from one state " +
+ *                      "the next state in response to an event. Any " +
+ *                      "arguments after the event name given to postEvent() " +
+ *                      "are passed into this callback after the pass argument: " + pass + " " + exampleArg),
+ *              },
+ *          }
+ *      },
+ *      SOME_NEXT_STATE: {
+ *          transitions: {
+ *              OK_EXAMPLE_OVER: {
+ *                  nextState: "END",
+ *                  action: pass => console.log(
+ *                      "The end state does not need its own entry in spec " +
+ *                      "unless you need to execute an entry action. " + pass)
+ *              }
+ *          }
+ *      }
+ *  }
+ * });
+ * 
+ * demo.postStart();
+ * // From here, you just need to notify the FSM of events so it can make the
+ * // state transitions, executing any callbacks you provided in the spec.
+ * // You can do this at any time, e.g. from a button click, or even from
+ * // within one of the FSM callbacks you provided in spec -- in which case, the
+ * // FSM will process it after it has finished processing the current event.
+ * demo.postEvent("EXAMPLE_EVENT", "An example argument.");
  */
 export function createMachine(config) {
     let machine = Object.create(fsm);
@@ -168,23 +99,117 @@ export function createMachine(config) {
     return Object.assign(machine, {spec, start, end, pass, options, state});
 }
 
-export function runDemo() {
-    let demo = createMachine({
-        //start - use default
-        //end   - use default
-        //spec  - use default; see fsm.spec
-        //pass  - use default
-        //options - use default
-    });
 
-    demo.postStart(); // must be called to start or reset the machine.
-    demo.postEvent("EXAMPLE_EVENT", "An example argument.");
-}
+/** Prototype of all FSMs. */
+const fsm = {
+    start: 'START',
+    end: 'END',
+    pass: null,
+    options: {
+        ignoreUnexpectedEvents: false
+    },
+
+    // The specification for the machine. Here's the default specification as an example.
+    spec: {
+        // The keys in this object are the state names.
+        START: {
+            entry: pass => console.log(pass),
+            exit: pass => console.log(pass),
+            transitions: {
+                // The keys in this object are the event names.
+                DONE: {
+                    // END state does not require an entry in spec unless you
+                    // need to fire an entry callback when transitioning to it.
+                    nextState: "END",
+                    action: (pass, exampleArg) => console.log(pass, exampleArg),
+                },
+            }
+        }
+    },
+
+    /**
+     * Queues the start event, which places the state machine in the start
+     * state, invoking an "entry" callback, if provided.
+     *
+     * Calling postStart() after the machine has already started resets the
+     * machine back to the start state, calling the entry action for the
+     * start state if one was specified.
+
+     * @returns Promise
+     */
+    postStart() {
+        return this.postEvent(null);
+    },
+
+    /**
+     * Queues an event with the given arguments. The arguments will be passed
+     * to an action callback, if provided.
+     * 
+     * @returns Promise.
+     */
+    postEvent(event, ...eventArgs) {
+        return new Promise((resolve, reject) => {
+            // setTimeout just to make this code asynchronous. This is so any
+            // methods that end up getting called in the entry, exit, or action
+            // functions don't actually try to make a transition while the state
+            // machine is in the middle of making one. The current transition
+            // will complete and then the message queue will get processed, which
+            // will end up processing this event.
+
+            setTimeout(() => {
+                let nextState = null;
+
+                if (this.state == null) {
+                    if (event != null) {
+                        return this._handleUnexpectedEvent(event, resolve, reject);
+                    }
+
+                    nextState = this.start;
+                } else if (event == null) {
+                        // Machine reset is being requested.
+                        nextState = this.start;
+                } else {
+                    if (!this.state.spec.transitions.hasOwnProperty(event)) {
+                        return this._handleUnexpectedEvent(event, resolve, reject);
+                    }
+
+                    callOptionalFn(this.state.spec.exit, this.pass);
+
+                    let transition = this.state.spec.transitions[event];
+
+                    callOptionalFn(transition.action, this.pass, eventArgs);
+
+                    nextState = transition.nextState;
+                }
+
+                if (this.spec.hasOwnProperty(nextState)) {
+                    this.state = {
+                        name: nextState,
+                        spec: this.spec[nextState]
+                    };
+                    callOptionalFn(this.state.spec.entry, this.pass);
+                } else if (nextState != this.end) { // end is optional
+                    // this can happen if the caller modifies the state machine
+                    reject(fsmError(this.state, `invalid next state ${nextState} encountered while processing event '${event}' in state ${this.state.name}`));
+                    return;
+                }
+
+                resolve();
+            }, 0);
+        });
+    },
+
+    _handleUnexpectedEvent(event, resolve, reject) {
+        if (this.options.ignoreUnexpectedEvents) {
+            resolve();
+        } else {
+            reject(fsmError(this.state, `unexpected event ${event}`));
+        }
+    }
+};
 
 // Helpers /////////////////////////////////////////////////////////////////////
 
-/* Calls the given function with the given args if the function exists.
- */
 function callOptionalFn(fn, pass, args) {
     if (fn) {
         fn(pass, args);

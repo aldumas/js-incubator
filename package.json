@@ -18,5 +18,8 @@
   "homepage": "https://github.com/aldumas/js-incubator#readme",
   "browserslist": [
     "defaults"
-  ]
+  ],
+  "devDependencies": {
+    "jsdoc": "^3.6.1"
+  }
 }
