@@ -1,4 +1,4 @@
-import * as fsm from '../node_modules/fsm.js/src/fsm.js';
+import * as fsm from '../node_modules/fsmjs/src/fsm.js';
 
 const DOOR_COUNT = 3;
 

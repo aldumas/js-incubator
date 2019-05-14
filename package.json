@@ -20,6 +20,6 @@
     "defaults"
   ],
   "dependencies": {
-    "fsm.js": "git+https://github.com/aldumas/fsm.js.git#master"
+    "fsmjs": "git+https://github.com/aldumas/fsmjs.git#master"
   }
 }
