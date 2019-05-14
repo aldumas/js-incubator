@@ -2,7 +2,7 @@ import * as fsm from '../node_modules/fsmjs/src/fsm.js';
 
 const DOOR_COUNT = 3;
 
-class LetsMakeADealGameStateMachine {
+class MontyHallProblem {
     constructor(contestant, func_random) {
         this._contestant = contestant;
         this._func_random = func_random || function (n) {
@@ -128,7 +128,7 @@ let contestant = {
 
 
 function run() {
-    var game = new LetsMakeADealGameStateMachine(contestant);
+    var game = new MontyHallProblem(contestant);
     console.log("--- STARTING GAME ---");
     game.startGame();
 }
