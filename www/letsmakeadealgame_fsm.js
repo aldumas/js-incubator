@@ -45,11 +45,11 @@ class LetsMakeADealGameStateMachine {
     }
 
     startGame() {
-        return this._fsm.postStart();
+        return this._fsm.queueStart();
     }
 
     guess(door) {
-        return this._fsm.postEvent('guess', door);
+        return this._fsm.queueEvent('guess', door);
     }
 
     get doorCount() {
