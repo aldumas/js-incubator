@@ -86,6 +86,10 @@
         return false;
     }
 
+    function every(array, test) {
+        return !array.some(val => !test(val));
+    }
+
     function loop(value, test, update, body) {
         for (let i = value; test(i); i = update(i)) {
             body(i);
@@ -170,6 +174,7 @@
         listToArray,
         chunk,
         deepEqual,
+        every,
         fizzBuzz,
         flatten,
         loop,

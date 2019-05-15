@@ -56,7 +56,7 @@ console.log(values.map(val => Number(val)));
 //Lessons:
 //1. == might produce an error while doing the type conversion e.g. if one of the values is an object without access to valueOf() or toString() and the other is a primitive value.
 //   a. Number(val) does the same thing.
-//      i. When converting to a number using Number(), the engine will prefer valueOf() over toString(). Even neither are present, it is an error.
+//      i. When converting to a number using Number(), the engine will prefer valueOf() over toString(). Even neither are present, it is an error. Number(obj) depends on one of those functions being present.
 //   b. String(val) does the same thing.
 //      i. When converting to a string using String(), the engine will prefer toString() over valueOf(). Even neither are present, it is an error.
 //   c. Boolean(val) never fails. Even an empty object with no prototype becomes true.
@@ -65,11 +65,9 @@ console.log(values.map(val => Number(val)));
 //3. "0" is truthy.
 //5. If you change the prototype of an Array object, Array.isArray will still return true.
 //6. == will return false for any 2 distinct objects, regardless of whether all the internals are the same.
-
-
-//LEFT OFF HERE: Why do we get NaN with Number({}) but an error when doing that with an object without valueOf() or toString()? Object.prototype.valueOf() returns an object. Does it return the object, itself, by default?
-//And if valueOf does not return a primitive, does that get converted to NaN by Number()?
-
-//TODO compare whether 2 distinct arrays are equal.
-
-
+//7. When used on an object, Object.prototype.valueOf() returns the object, itself.
+//8. When Number(obj) calls valueOf() on the object, it does not do this recursively, so if valueOf()
+//   returns an object, that object's valueOf() is not invoked.
+//   a. If an object is returned, toString() is attempted. If there's no toString(), it's an error;
+//      otherwise, Number will try to convert the string returned by toString(), which may result in
+//      NaN.
